@@ -1,32 +1,40 @@
-use std::error::Error;
+mod data;
+
 use std::process;
-use std::fs::File;
+use std::time::Duration;
+use stopwatch::Stopwatch;
+use log::info;
 
-use serde::Deserialize;
+use crate::data::{Data, MetaData};
 
-#[derive(Debug, Deserialize)]
-struct Transaction {
-    movie_id: u64,
-    customer_id: u64,
-    rating: u8,
-    date: String,
-}
+extern crate pretty_env_logger;
+/*
+static mut STOP_WATCH: Option<Stopwatch> = None;
 
-fn example() -> Result<(), Box<dyn Error>> {
-    let file = File::open("./data/train.csv").unwrap();
-    let mut rdr = csv::Reader::from_reader(file);
-    for result in rdr.deserialize() {
-        // Notice that we need to provide a type hint for automatic
-        // deserialization.
-        let Transaction: Transaction = result?;
-        println!("{:?}", Transaction);
+fn tic() {
+    unsafe {
+        STOP_WATCH = Some(Stopwatch::start_new());
     }
-    Ok(())
 }
 
+fn toc() -> Duration {
+    unsafe {
+        match STOP_WATCH {
+            Some(s) => s.elapsed(),
+            None => Duration::from_secs(0),
+        }
+    }
+}
+*/
 fn main() {
-    if let Err(err) = example() {
-        println!("error running example: {}", err);
-        process::exit(1);
-    }
+    pretty_env_logger::init();
+
+    let data = match Data::new() {
+        Ok(d) => d,
+        Err(err) => { 
+            println!("error running example: {}", err);
+            process::exit(1);
+        }
+    };
+    info!("Retrived: {:?}", MetaData::from_data(&data));
 }
