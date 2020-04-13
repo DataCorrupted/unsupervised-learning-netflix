@@ -15,7 +15,8 @@ trait FromStringRecord {
         Self: std::marker::Sized;
 }
 
-fn load_csv<T: FromStringRecord + std::fmt::Debug>(p: PathBuf) -> Result<Vec<T>, Box<dyn Error>> {
+fn load_csv<T>(p: PathBuf) -> Result<Vec<T>, Box<dyn Error>> 
+where T: FromStringRecord + std::fmt::Debug{
     info!("Loading csv from {:?}", p);
     let (elapsed, ret) = measure_time(|| {
         let file = File::open(p).unwrap();
@@ -75,40 +76,34 @@ pub struct MetaData {
 impl MetaData {
     pub fn from_data(data: &Data) -> Self {
         Self {
-            num_customers: data
-                .transactions()
-                .into_iter()
+            num_customers: data.transactions
+                .iter()
                 .map(|transaction| transaction.customer_id)
                 .unique()
                 .collect::<Vec<u64>>()
                 .len(),
-            num_movies: data.movies().len(),
+            num_movies: data.movies.len(),
         }
     }
 }
 
 #[allow(dead_code)]
 pub struct Data {
-    transactions: Vec<Transaction>,
-    movies: Vec<Movie>,
-    test_data: Vec<Transaction>,
+    pub transactions: Vec<Transaction>,
+    pub movies: Vec<Movie>,
+    pub test_data: Vec<Transaction>,
 }
 
 impl Data {
-    pub fn new<P: Into<PathBuf> + Clone + std::fmt::Debug>(
+    pub fn new<P>(
         path: P,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> Result<Self, Box<dyn Error>> 
+    where P: Into<PathBuf> + Clone + std::fmt::Debug{
         info!("Loading data from: {:?}", path);
         Ok(Data {
             transactions: load_csv(path.clone().into().join("train.csv"))?,
             movies: load_csv(path.clone().into().join("movie_titles.csv"))?,
             test_data: load_csv(path.clone().into().join("test.csv"))?,
         })
-    }
-    pub fn movies(&self) -> &Vec<Movie> {
-        &self.movies
-    }
-    pub fn transactions(&self) -> &Vec<Transaction> {
-        &self.transactions
     }
 }
