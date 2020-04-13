@@ -47,6 +47,9 @@ fn main() {
 
     for model_holder in inventory::iter::<ModelHolder> {
         let mut model = model_holder.get_model();
-        model.init(&data).train().predict_all_and_output_to_file(&data.test_data)
+        model
+            .init(&data)
+            .train()
+            .predict_all_and_output_to_file(&data.test_data)
     }
 }

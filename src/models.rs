@@ -1,27 +1,27 @@
 pub mod matrix_completion;
 pub mod spectral_clustering;
 
-use std::{fs::File, io::Write, fmt::Debug};
+use std::{fmt::Debug, fs::File, io::Write};
 
-use crate::data::{Rating, Transaction, Data};
+use crate::data::{Data, Rating, Transaction};
 
-pub trait DefaultModel : Debug {
+pub trait DefaultModel: Debug {
     fn default(&self) -> Box<dyn Model>;
 }
-impl<T> DefaultModel for T 
-where T: Model + Default + Debug + 'static {
+impl<T> DefaultModel for T
+where
+    T: Model + Default + Debug + 'static,
+{
     fn default(&self) -> Box<dyn Model> {
         Box::new(T::default())
     }
 }
-pub struct ModelHolder{
+pub struct ModelHolder {
     inner: Box<dyn DefaultModel>,
 }
 impl ModelHolder {
     pub fn new(d_model: Box<dyn DefaultModel>) -> Self {
-        Self {
-            inner: d_model
-        }
+        Self { inner: d_model }
     }
     pub fn get_model(&self) -> Box<dyn Model> {
         self.inner.default()
@@ -29,7 +29,9 @@ impl ModelHolder {
 }
 
 pub trait Model {
-    fn get_name(&self) -> &'static str { "GenericModel" }
+    fn get_name(&self) -> &'static str {
+        "GenericModel"
+    }
     fn init(&mut self, data: &Data) -> &mut dyn Model;
     fn train(&mut self) -> &mut dyn Model;
     fn predict(&self, trans: &Transaction) -> Rating;

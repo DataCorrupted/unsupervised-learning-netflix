@@ -15,8 +15,10 @@ trait FromStringRecord {
         Self: std::marker::Sized;
 }
 
-fn load_csv<T>(p: PathBuf) -> Result<Vec<T>, Box<dyn Error>> 
-where T: FromStringRecord + std::fmt::Debug{
+fn load_csv<T>(p: PathBuf) -> Result<Vec<T>, Box<dyn Error>>
+where
+    T: FromStringRecord + std::fmt::Debug,
+{
     info!("Loading csv from {:?}", p);
     let (elapsed, ret) = measure_time(|| {
         let file = File::open(p).unwrap();
@@ -76,7 +78,8 @@ pub struct MetaData {
 impl MetaData {
     pub fn from_data(data: &Data) -> Self {
         Self {
-            num_customers: data.transactions
+            num_customers: data
+                .transactions
                 .iter()
                 .map(|transaction| transaction.customer_id)
                 .unique()
@@ -95,10 +98,10 @@ pub struct Data {
 }
 
 impl Data {
-    pub fn new<P>(
-        path: P,
-    ) -> Result<Self, Box<dyn Error>> 
-    where P: Into<PathBuf> + Clone + std::fmt::Debug{
+    pub fn new<P>(path: P) -> Result<Self, Box<dyn Error>>
+    where
+        P: Into<PathBuf> + Clone + std::fmt::Debug,
+    {
         info!("Loading data from: {:?}", path);
         Ok(Data {
             transactions: load_csv(path.clone().into().join("train.csv"))?,
