@@ -3,3 +3,4 @@ data/*.csv
 Cargo.lock
 *.pdf
 doc/
+*.png

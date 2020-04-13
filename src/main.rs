@@ -14,6 +14,9 @@ mod data;
 /// Matrix completion and spectral clustering are put in here.
 mod models;
 
+/// Manages all plot related features.
+mod plot;
+
 use log::{error, info, warn};
 use std::{env, path::Path, process};
 
@@ -49,20 +52,31 @@ fn main() {
         }
     };
 
-    let data = match Data::new(data_path) {
+    let (metadata, data) = match Data::new(data_path) {
         Ok(d) => d,
         Err(err) => {
             error!("error running example: {}", err);
             process::exit(1);
         }
     };
-    info!("Retrived: {:?}", MetaData::from_data(&data));
+    let (num_trans, num_tests) = metadata.trans_freq.iter().zip(metadata.test_freq.iter()).fold((0, 0), |(num_trans, num_tests), (&trans, &tests)|{
+        (num_trans + trans, num_tests + tests)
+    });
+    info!("Retrived metadata");
+    info!("Total # customers: {}, # movies: {}", metadata.num_customers, metadata.num_movies);
+    info!("Total # of transactions: {}, # of tests: {}", num_trans, num_tests);
 
-    for model_holder in inventory::iter::<ModelHolder> {
-        let mut model = model_holder.get_model();
-        model
-            .init(&data)
-            .train()
-            .predict_all_and_output_to_file(&data.test_data)
-    }
+    plot::plot_data_freq(&metadata);
+
+    plot::plot_initial_matrix(&data, &metadata).expect("Cannot plot initial matrix.");
+    info!("Initial matrix plotted.");
+    /*
+        for model_holder in inventory::iter::<ModelHolder> {
+            let mut model = model_holder.get_model();
+            model
+                .init(&data)
+                .train()
+                .predict_all_and_output_to_file(&data.test_data)
+        }
+    */
 }

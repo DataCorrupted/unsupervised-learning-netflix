@@ -4,7 +4,6 @@ use super::*;
 #[derive(Default, Debug)]
 struct MatrixCompletion;
 
-#[doc(hidden)]
 inventory::submit!(ModelHolder::new(Box::new(MatrixCompletion)));
 
 impl Model for MatrixCompletion {

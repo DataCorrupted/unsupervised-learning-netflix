@@ -1,10 +1,10 @@
-use std::error::Error;
-use std::fs::File;
-use std::path::PathBuf;
+use std::{collections::{HashMap}, error::Error, fmt::Debug, fs::File, path::PathBuf};
+
+use crate::config;
 
 use csv::StringRecord;
 use itertools::Itertools;
-use log::info;
+use log::{info, warn};
 use serde::Deserialize;
 
 use elapsed::measure_time;
@@ -18,7 +18,7 @@ trait FromStringRecord {
 
 fn load_csv<T>(p: PathBuf) -> Result<Vec<T>, Box<dyn Error>>
 where
-    T: FromStringRecord + std::fmt::Debug,
+    T: FromStringRecord + Debug,
 {
     info!("Loading csv from {:?}", p);
     let (elapsed, ret) = measure_time(|| {
@@ -77,29 +77,17 @@ impl FromStringRecord for Movie {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MetaData {
-    num_customers: usize,
-    num_movies: usize,
+    pub num_customers: u32,
+    pub num_movies: u32,
+    pub trans_freq: Vec<u32>,
+    pub test_freq: Vec<u32>,
 }
-impl MetaData {
-    pub fn from_data(data: &Data) -> Self {
-        Self {
-            num_customers: data
-                .transactions
-                .iter()
-                .map(|transaction| transaction.customer_id)
-                .unique()
-                .collect::<Vec<u64>>()
-                .len(),
-            num_movies: data.movies.len(),
-        }
-    }
-}
+
 
 /// `Data` holds all `Transaction`s, `Movie`s and test set,
 /// which is also in the form a `Transaction`.
-#[allow(dead_code)]
 pub struct Data {
     pub transactions: Vec<Transaction>,
     pub movies: Vec<Movie>,
@@ -107,15 +95,51 @@ pub struct Data {
 }
 
 impl Data {
-    pub fn new<P>(path: P) -> Result<Self, Box<dyn Error>>
+    pub fn new<P>(path: P) -> Result<(MetaData, Self), Box<dyn Error>>
     where
-        P: Into<PathBuf> + Clone + std::fmt::Debug,
+        P: Into<PathBuf> + Clone + Debug,
     {
         info!("Loading data from: {:?}", path);
-        Ok(Data {
-            transactions: load_csv(path.clone().into().join("train.csv"))?,
-            movies: load_csv(path.clone().into().join("movie_titles.csv"))?,
-            test_data: load_csv(path.clone().into().join("test.csv"))?,
-        })
+        let mut transactions: Vec<Transaction> =
+            load_csv(path.clone().into().join(config::TRAINING_DATA))?;
+        let movies = load_csv(path.clone().into().join("movie_titles.csv"))?;
+        let mut test_data: Vec<Transaction> = load_csv(path.clone().into().join("test.csv"))?;
+        let mut virtual_id_map = HashMap::new();
+        let mut virtual_id = 0;
+        let mut trans_freq = Vec::new();
+        transactions.iter_mut().for_each(|t| {
+            if (virtual_id_map.get(&t.customer_id).is_none()) {
+                virtual_id_map.insert(t.customer_id, virtual_id);
+                virtual_id += 1;
+                trans_freq.push(0);
+            }
+            let idx = *virtual_id_map.get(&t.customer_id).unwrap();
+            t.customer_id = idx;
+            trans_freq[idx as usize] += 1;
+
+        });
+        let mut test_freq = vec![0; virtual_id as usize];
+        test_data.iter_mut().for_each(|t| {
+            if (virtual_id_map.get(&t.customer_id).is_none()) {
+                virtual_id_map.insert(t.customer_id, virtual_id);
+                warn!("How come a customer(id: {}) is in testing set but not in training set? Setting its virtial id to {}", t.customer_id, virtual_id);
+                virtual_id += 1;
+                trans_freq.push(0);
+                test_freq.push(0);
+            }
+            let idx = *virtual_id_map.get(&t.customer_id).unwrap();
+            t.customer_id = idx;
+            test_freq[idx as usize] += 1;
+        });
+        Ok((MetaData{
+            num_customers: virtual_id as u32,
+            num_movies: movies.len() as u32,
+            trans_freq: trans_freq,
+            test_freq: test_freq
+        }, Data {
+            transactions: transactions,
+            movies: movies,
+            test_data: test_data,
+        }))
     }
 }
