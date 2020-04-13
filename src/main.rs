@@ -6,6 +6,7 @@ use log::{error, info, warn};
 use std::{env, path::Path, process};
 
 use crate::data::{Data, MetaData};
+use crate::models::ModelHolder;
 
 extern crate pretty_env_logger;
 
@@ -43,4 +44,9 @@ fn main() {
         }
     };
     info!("Retrived: {:?}", MetaData::from_data(&data));
+
+    for model_holder in inventory::iter::<ModelHolder> {
+        let mut model = model_holder.get_model();
+        model.init(&data).train().predict_all_and_output_to_file(&data.test_data)
+    }
 }

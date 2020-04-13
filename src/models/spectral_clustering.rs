@@ -1,11 +1,15 @@
 use super::*;
 
 #[allow(dead_code)]
+#[derive(Default, Debug)]
 struct SpectralClustering;
+inventory::submit!(ModelHolder::new(Box::new(SpectralClustering)));
 
-impl Models for SpectralClustering {
-    const NAME: &'static str = "SpectralClustering";
+impl Model for SpectralClustering {
+    fn get_name(&self) -> &'static str { "SpectralClustering" }
+    fn init(&mut self, _data: &Data) -> &mut dyn Model { self }
+    fn train(&mut self) -> &mut dyn Model { self }
     fn predict(&self, _trans: &Transaction) -> Rating {
-        unimplemented!()
+        0
     }
 }

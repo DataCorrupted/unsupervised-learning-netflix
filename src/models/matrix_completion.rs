@@ -1,11 +1,16 @@
 use super::*;
 
 #[allow(dead_code)]
+#[derive(Default, Debug)]
 struct MatrixCompletion;
 
-impl Models for MatrixCompletion {
-    const NAME: &'static str = "MatrixCompletion";
+inventory::submit!(ModelHolder::new(Box::new(MatrixCompletion)));
+
+impl Model for MatrixCompletion {
+    fn get_name(&self) -> &'static str { "MatrixCompletion" }
+    fn init(&mut self, _data: &Data) -> &mut dyn Model{ self }
+    fn train(&mut self) -> &mut dyn Model { self }
     fn predict(&self, _trans: &Transaction) -> Rating {
-        unimplemented!()
+        0
     }
 }
