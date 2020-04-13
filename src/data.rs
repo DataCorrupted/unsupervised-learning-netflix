@@ -81,7 +81,7 @@ pub struct MetaData {
     pub num_customers: u32,
     pub num_movies: u32,
     pub trans_freq: Vec<u32>,
-    pub test_freq: Vec<u32>,
+    pub tests_freq: Vec<u32>,
 }
 
 /// `Data` holds all `Transaction`s, `Movie`s and test set,
@@ -115,25 +115,25 @@ impl Data {
             t.customer_id = idx;
             trans_freq[idx as usize] += 1;
         });
-        let mut test_freq = vec![0; virtual_id as usize];
+        let mut tests_freq = vec![0; virtual_id as usize];
         test_data.iter_mut().for_each(|t| {
             if virtual_id_map.get(&t.customer_id).is_none() {
                 virtual_id_map.insert(t.customer_id, virtual_id);
                 warn!("How come a customer(id: {}) is in testing set but not in training set? Setting its virtial id to {}", t.customer_id, virtual_id);
                 virtual_id += 1;
                 trans_freq.push(0);
-                test_freq.push(0);
+                tests_freq.push(0);
             }
             let idx = *virtual_id_map.get(&t.customer_id).unwrap();
             t.customer_id = idx;
-            test_freq[idx as usize] += 1;
+            tests_freq[idx as usize] += 1;
         });
         Ok((
             MetaData {
                 num_customers: virtual_id as u32,
                 num_movies: movies.len() as u32,
                 trans_freq: trans_freq,
-                test_freq: test_freq,
+                tests_freq: tests_freq,
             },
             Data {
                 transactions: transactions,

@@ -61,7 +61,7 @@ fn main() {
     let (num_trans, num_tests) = metadata
         .trans_freq
         .iter()
-        .zip(metadata.test_freq.iter())
+        .zip(metadata.tests_freq.iter())
         .fold((0, 0), |(num_trans, num_tests), (&trans, &tests)| {
             (num_trans + trans, num_tests + tests)
         });

@@ -10,7 +10,7 @@ pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<d
         num_customers: n,
         num_movies: m,
         trans_freq: _,
-        test_freq: _,
+        tests_freq: _,
     } = metadata;
 
     let (x_label_size, y_label_size) = (20, 60);
@@ -114,26 +114,33 @@ pub fn plot_data_freq(metadata: &MetaData) -> Result<(), Box<dyn Error>> {
         num_customers: n,
         num_movies: _,
         trans_freq,
-        test_freq,
+        tests_freq,
     } = metadata.clone();
-    let max_freq = trans_freq
-        .iter()
-        .zip(test_freq.iter())
-        .fold(0, |max_freq, (&trans, &tests)| {
-            u32::max(max_freq, u32::max(trans, tests))
-        });
-    info!("max freq: {}", max_freq);
+    let (max_trans, max_tests) = trans_freq.iter().zip(tests_freq.iter()).fold(
+        (0, 0),
+        |(max_trans, max_tests), (&trans, &tests)| {
+            (u32::max(max_trans, trans), u32::max(max_tests, tests))
+        },
+    );
+    info!("max # of trans: {}", max_trans);
+    info!("max # of tests: {}", max_tests);
 
     plot_freq_histogram(
         &trans_freq,
         n,
-        300,
+        max_trans + 10,
         "Transaction Frequency",
         "trans_freq.png",
     )?;
     info!("Plotted transaction frequency");
 
-    plot_freq_histogram(&test_freq, n, 300, "Test Frequency", "test_freq.png")?;
+    plot_freq_histogram(
+        &tests_freq,
+        n,
+        max_tests + 10,
+        "Test Frequency",
+        "tests_freq.png",
+    )?;
     info!("Plotted test frequency");
 
     Ok(())
