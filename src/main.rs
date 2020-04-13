@@ -1,5 +1,17 @@
+//! ## Recommend NetFlix.
+//!
+//! This is a homework for ECS271. I know it's kinda better and easier
+//! (mostly easier) to use Python. But I do want to try to use rust
+//! to do some learning and see how it works.
+
+/// All the configurations for the binary.
+/// The config for the models are put in their code.
 mod config;
+
+/// A mod to help deal with csv and all data.
 mod data;
+
+/// Matrix completion and spectral clustering are put in here.
 mod models;
 
 use log::{error, info, warn};
@@ -10,6 +22,7 @@ use crate::models::ModelHolder;
 
 extern crate pretty_env_logger;
 
+/// All the dirty work goes here.
 fn main() {
     // By default we show all logs.
     if env::var(config::RUST_LOG).is_err() {
@@ -39,7 +52,7 @@ fn main() {
     let data = match Data::new(data_path) {
         Ok(d) => d,
         Err(err) => {
-            println!("error running example: {}", err);
+            error!("error running example: {}", err);
             process::exit(1);
         }
     };

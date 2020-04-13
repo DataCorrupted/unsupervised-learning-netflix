@@ -9,6 +9,7 @@ use serde::Deserialize;
 
 use elapsed::measure_time;
 
+/// Converts a `StringRecord` to our type.
 trait FromStringRecord {
     fn from_string_record(record: StringRecord) -> Result<Self, Box<dyn Error>>
     where
@@ -34,7 +35,13 @@ where
 }
 
 pub type Rating = u8;
-
+/// `Transaction` is a customer's behavior.config
+///
+/// `Transcction` consists of the `movie_id` he bought,
+/// `customer_id` to tell us who he is, his `rating`
+/// (between 1 and 5 inclusive), and `date`
+///
+/// If 'rating' is 0 then this `Transaction` is in test set.
 #[derive(Debug, Deserialize)]
 pub struct Transaction {
     pub movie_id: u64,
@@ -90,6 +97,8 @@ impl MetaData {
     }
 }
 
+/// `Data` holds all `Transaction`s, `Movie`s and test set,
+/// which is also in the form a `Transaction`.
 #[allow(dead_code)]
 pub struct Data {
     pub transactions: Vec<Transaction>,

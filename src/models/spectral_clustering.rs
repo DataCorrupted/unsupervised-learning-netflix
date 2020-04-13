@@ -3,6 +3,8 @@ use super::*;
 #[allow(dead_code)]
 #[derive(Default, Debug)]
 struct SpectralClustering;
+
+#[doc(hidden)]
 inventory::submit!(ModelHolder::new(Box::new(SpectralClustering)));
 
 impl Model for SpectralClustering {
