@@ -1,5 +1,6 @@
 mod config;
 mod data;
+mod models;
 
 use log::{error, info, warn};
 use std::{env, path::Path, process};

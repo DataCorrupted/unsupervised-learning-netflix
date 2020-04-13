@@ -30,18 +30,16 @@ fn load_csv<T: FromStringRecord + std::fmt::Debug>(p: PathBuf) -> Result<Vec<T>,
     ret
 }
 
+pub type Rating = u8;
+
 #[derive(Debug, Deserialize)]
 pub struct Transaction {
-    movie_id: u64,
-    customer_id: u64,
-    rating: u8,
-    date: String,
+    pub movie_id: u64,
+    pub customer_id: u64,
+    pub rating: Rating,
+    pub date: String,
 }
-impl Transaction {
-    pub fn customer_id(&self) -> u64 {
-        self.customer_id
-    }
-}
+
 impl FromStringRecord for Transaction {
     fn from_string_record(record: StringRecord) -> Result<Self, Box<dyn Error>> {
         Ok(Self {
@@ -80,7 +78,7 @@ impl MetaData {
             num_customers: data
                 .transactions()
                 .into_iter()
-                .map(|transaction| transaction.customer_id())
+                .map(|transaction| transaction.customer_id)
                 .unique()
                 .collect::<Vec<u64>>()
                 .len(),
