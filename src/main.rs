@@ -20,8 +20,7 @@ mod plot;
 use log::{error, info, warn};
 use std::{env, path::Path, process};
 
-use crate::data::{Data, MetaData};
-use crate::models::ModelHolder;
+use crate::data::Data;
 
 extern crate pretty_env_logger;
 
@@ -59,14 +58,24 @@ fn main() {
             process::exit(1);
         }
     };
-    let (num_trans, num_tests) = metadata.trans_freq.iter().zip(metadata.test_freq.iter()).fold((0, 0), |(num_trans, num_tests), (&trans, &tests)|{
-        (num_trans + trans, num_tests + tests)
-    });
+    let (num_trans, num_tests) = metadata
+        .trans_freq
+        .iter()
+        .zip(metadata.test_freq.iter())
+        .fold((0, 0), |(num_trans, num_tests), (&trans, &tests)| {
+            (num_trans + trans, num_tests + tests)
+        });
     info!("Retrived metadata");
-    info!("Total # customers: {}, # movies: {}", metadata.num_customers, metadata.num_movies);
-    info!("Total # of transactions: {}, # of tests: {}", num_trans, num_tests);
+    info!(
+        "Total # customers: {}, # movies: {}",
+        metadata.num_customers, metadata.num_movies
+    );
+    info!(
+        "Total # of transactions: {}, # of tests: {}",
+        num_trans, num_tests
+    );
 
-    plot::plot_data_freq(&metadata);
+    plot::plot_data_freq(&metadata).expect("Cannot plot freq histogram.");
 
     plot::plot_initial_matrix(&data, &metadata).expect("Cannot plot initial matrix.");
     info!("Initial matrix plotted.");

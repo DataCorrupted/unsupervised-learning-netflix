@@ -24,6 +24,7 @@ where
 /// uninitialized models for further initialization.
 /// All models are required to be `Model`, `Default`,
 /// and `Debug`
+#[allow(dead_code)]
 pub struct ModelHolder {
     inner: Box<dyn DefaultModel>,
 }
@@ -32,6 +33,7 @@ impl ModelHolder {
         Self { inner: d_model }
     }
     /// Return a `Model::default()`
+    #[allow(dead_code)]
     pub fn get_model(&self) -> Box<dyn Model> {
         self.inner.default()
     }

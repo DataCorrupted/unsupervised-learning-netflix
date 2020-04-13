@@ -1,7 +1,7 @@
 use std::error::Error;
 
-use plotters::prelude::*;
 use log::info;
+use plotters::prelude::*;
 
 use crate::data::{Data, MetaData};
 
@@ -21,7 +21,7 @@ pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<d
     );
 
     let root = BitMapBackend::new("initial_matrix.png", plot_size).into_drawing_area();
-    root.fill(&WHITE);
+    root.fill(&WHITE)?;
     let root = root.margin(10, 10, 10, 10);
     // After this point, we should be able to draw construct a chart context
     let mut chart = ChartBuilder::on(&root)
@@ -72,9 +72,14 @@ pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<d
     Ok(())
 }
 
-fn plot_freq_histogram(data: &Vec<u32>, max_x: u32, max_y: u32, title: &'static str, path: &'static str) -> Result<(), Box<dyn Error>> {
-    let root =
-        BitMapBackend::new(path, (1920, 1080)).into_drawing_area();
+fn plot_freq_histogram(
+    data: &Vec<u32>,
+    max_x: u32,
+    max_y: u32,
+    title: &'static str,
+    path: &'static str,
+) -> Result<(), Box<dyn Error>> {
+    let root = BitMapBackend::new(path, (1920, 1080)).into_drawing_area();
 
     root.fill(&WHITE)?;
 
@@ -104,19 +109,28 @@ fn plot_freq_histogram(data: &Vec<u32>, max_x: u32, max_y: u32, title: &'static 
     Ok(())
 }
 
-pub fn plot_data_freq(metadata: &MetaData) -> Result<(), Box<dyn Error>>{
+pub fn plot_data_freq(metadata: &MetaData) -> Result<(), Box<dyn Error>> {
     let MetaData {
         num_customers: n,
         num_movies: _,
-        trans_freq: trans_freq,
-        test_freq: test_freq,
+        trans_freq,
+        test_freq,
     } = metadata.clone();
-    let max_freq = trans_freq.iter().zip(test_freq.iter()).fold(0, |max_freq, (&trans, &tests)|{
-        u32::max(max_freq, u32::max(trans, tests))
-    });
+    let max_freq = trans_freq
+        .iter()
+        .zip(test_freq.iter())
+        .fold(0, |max_freq, (&trans, &tests)| {
+            u32::max(max_freq, u32::max(trans, tests))
+        });
     info!("max freq: {}", max_freq);
-    
-    plot_freq_histogram(&trans_freq, n, 300, "Transaction Frequency", "trans_freq.png")?;
+
+    plot_freq_histogram(
+        &trans_freq,
+        n,
+        300,
+        "Transaction Frequency",
+        "trans_freq.png",
+    )?;
     info!("Plotted transaction frequency");
 
     plot_freq_histogram(&test_freq, n, 300, "Test Frequency", "test_freq.png")?;
