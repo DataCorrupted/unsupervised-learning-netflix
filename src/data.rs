@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
-use std::path::Path;
+use std::path::PathBuf;
 
 use csv::StringRecord;
+use itertools::Itertools;
 use log::info;
 use serde::Deserialize;
 
@@ -15,10 +15,8 @@ trait FromStringRecord {
         Self: std::marker::Sized;
 }
 
-fn load_csv<P: AsRef<Path> + std::fmt::Debug, T: FromStringRecord + std::fmt::Debug>(
-    p: P,
-) -> Result<Vec<T>, Box<dyn Error>> {
-    info!("Loading csv from {:?}... ", p);
+fn load_csv<T: FromStringRecord + std::fmt::Debug>(p: PathBuf) -> Result<Vec<T>, Box<dyn Error>> {
+    info!("Loading csv from {:?}", p);
     let (elapsed, ret) = measure_time(|| {
         let file = File::open(p).unwrap();
         let mut rdr = csv::Reader::from_reader(file);
@@ -78,19 +76,15 @@ pub struct MetaData {
 }
 impl MetaData {
     pub fn from_data(data: &Data) -> Self {
-        let num_movies = data.movies().len();
-        let mut customers_map: HashMap<u64, bool> = HashMap::new();
-        let mut num_customers = 0;
-        data.transactions().iter().for_each(|transaction| {
-            let id = transaction.customer_id();
-            if !customers_map.contains_key(&id) {
-                num_customers += 1;
-                customers_map.insert(id, true);
-            }
-        });
         Self {
-            num_customers: num_customers,
-            num_movies: num_movies,
+            num_customers: data
+                .transactions()
+                .into_iter()
+                .map(|transaction| transaction.customer_id())
+                .unique()
+                .collect::<Vec<u64>>()
+                .len(),
+            num_movies: data.movies().len(),
         }
     }
 }
@@ -103,11 +97,14 @@ pub struct Data {
 }
 
 impl Data {
-    pub fn new() -> Result<Self, Box<dyn Error>> {
+    pub fn new<P: Into<PathBuf> + Clone + std::fmt::Debug>(
+        path: P,
+    ) -> Result<Self, Box<dyn Error>> {
+        info!("Loading data from: {:?}", path);
         Ok(Data {
-            transactions: load_csv(Path::new("./data/train.csv"))?,
-            movies: load_csv(Path::new("./data/movie_titles.csv"))?,
-            test_data: load_csv(Path::new("./data/test.csv"))?,
+            transactions: load_csv(path.clone().into().join("train.csv"))?,
+            movies: load_csv(path.clone().into().join("movie_titles.csv"))?,
+            test_data: load_csv(path.clone().into().join("test.csv"))?,
         })
     }
     pub fn movies(&self) -> &Vec<Movie> {
