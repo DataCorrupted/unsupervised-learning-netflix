@@ -117,7 +117,11 @@ impl Data {
         let mut tests_freq = vec![0; virtual_id as usize];
         test_data.iter_mut().for_each(|t| {
             let idx = *virtual_id_map.entry(t.customer_id).or_insert_with(|| {
-                warn!("How come a customer(id: {}) is in testing set but not in training set? Setting its virtial id to {}", t.customer_id, virtual_id);
+                warn!(
+                    "How come a customer(id: {}) is in testing set but not in training set? \
+                      Setting its virtial id to {}.",
+                    t.customer_id, virtual_id
+                );
                 virtual_id += 1;
                 trans_freq.push(0);
                 tests_freq.push(0);
