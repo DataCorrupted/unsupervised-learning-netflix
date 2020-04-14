@@ -13,22 +13,22 @@ pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<d
         tests_freq: _,
     } = metadata;
 
-    let (x_label_size, y_label_size) = (20, 60);
-    let margin = 10;
+    let (x_label_size, y_label_size) = (100, 100);
+    let margin = 100;
     let plot_size = (
-        y_label_size + margin * 2 + m / 10,
-        x_label_size + margin * 2 + n / 10,
+        y_label_size + margin * 2 + m / 5,
+        x_label_size + margin * 2 + n / 5,
     );
 
     let root = BitMapBackend::new("initial_matrix.png", plot_size).into_drawing_area();
     root.fill(&WHITE)?;
-    let root = root.margin(10, 10, 10, 10);
+    let root = root.margin(margin, margin, margin, margin);
     // After this point, we should be able to draw construct a chart context
     let mut chart = ChartBuilder::on(&root)
         // Set the caption of the chart
         .caption(
             "Initial completion status of the matrix",
-            ("sans-serif", 40).into_font(),
+            ("sans-serif", 70).into_font(),
         )
         // Set the size of the label region
         .x_label_area_size(x_label_size)
@@ -39,11 +39,17 @@ pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<d
     // Then we can draw a mesh
     chart
         .configure_mesh()
+        .disable_x_mesh()
+        .disable_y_mesh()
         // We can customize the maximum number of labels allowed for each axis
-        .x_labels(5)
-        .y_labels(5)
+        .x_labels(20)
+        .y_labels(20)
+        .x_desc("Movie id")
+        .y_desc("User (virtual) id")
         // We can also change the format of the label text
-        .y_label_formatter(&|x| format!("{:.3}", x))
+        .x_label_formatter(&|x| format!("{}", x))
+        .y_label_formatter(&|x| format!("{}", x))
+        .axis_desc_style(("sans-serif", 50).into_font())
         .draw()?;
 
     // Similarly, we can draw point series
@@ -53,9 +59,9 @@ pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<d
             .map(|t| (t.movie_id as f32, t.customer_id as f32)),
         1,
         &BLUE,
-        &|c, s, st| {
+        &|c, _s, st| {
             return EmptyElement::at(c)    // We want to construct a composed element on-the-fly
-            + Circle::new((0,0),s,st.filled()); // At this point, the new pixel coordinate is established
+            + Pixel::new((0,0),st.filled()); // At this point, the new pixel coordinate is established
         },
     ))?;
     chart.draw_series(PointSeries::of_element(
@@ -64,9 +70,9 @@ pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<d
             .map(|t| (t.movie_id as f32, t.customer_id as f32)),
         1,
         &RED,
-        &|c, s, st| {
+        &|c, _s, st| {
             return EmptyElement::at(c)    // We want to construct a composed element on-the-fly
-            + Circle::new((0,0),s,st.filled()); // At this point, the new pixel coordinate is established
+            + Pixel::new((0,0),st.filled()); // At this point, the new pixel coordinate is established
         },
     ))?;
     Ok(())
