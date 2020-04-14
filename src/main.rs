@@ -17,10 +17,15 @@ mod models;
 /// Manages all plot related features.
 mod plot;
 
+/// Handles input/output of the data.
+mod io;
+
 use log::{error, info, warn};
 use std::{env, path::Path, process};
 
 use crate::data::Data;
+use crate::io::DumpToFile;
+use crate::models::ModelHolder;
 
 extern crate pretty_env_logger;
 
@@ -79,13 +84,13 @@ fn main() {
 
     plot::plot_initial_matrix(&data, &metadata).expect("Cannot plot initial matrix.");
     info!("Initial matrix plotted.");
-    /*
-        for model_holder in inventory::iter::<ModelHolder> {
-            let mut model = model_holder.get_model();
-            model
-                .init(&data)
-                .train()
-                .predict_all_and_output_to_file(&data.test_data)
-        }
-    */
+
+    for model_holder in inventory::iter::<ModelHolder> {
+        let mut model = model_holder.get_model();
+        model
+            .init(&data)
+            .train()
+            .predict_all(&data.test_data)
+            .dump_to_file(format!("{}.txt", model_holder.get_name()));
+    }
 }

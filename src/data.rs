@@ -1,37 +1,9 @@
-use std::{collections::HashMap, error::Error, fmt::Debug, fs::File, path::PathBuf};
+use std::{collections::HashMap, error::Error, fmt::Debug, path::PathBuf};
 
 use crate::config;
+use crate::io::FromCsv;
 
-use csv::StringRecord;
 use log::{info, warn};
-use serde::Deserialize;
-
-use elapsed::measure_time;
-
-/// Converts a `StringRecord` to our type.
-trait FromStringRecord {
-    fn from_string_record(record: StringRecord) -> Result<Self, Box<dyn Error>>
-    where
-        Self: std::marker::Sized;
-}
-
-fn load_csv<T>(p: PathBuf) -> Result<Vec<T>, Box<dyn Error>>
-where
-    T: FromStringRecord + Debug,
-{
-    info!("Loading csv from {:?}", p);
-    let (elapsed, ret) = measure_time(|| {
-        let file = File::open(p).unwrap();
-        let mut rdr = csv::Reader::from_reader(file);
-        let mut ret = vec![];
-        for result in rdr.records() {
-            ret.push(T::from_string_record(result?)?);
-        }
-        Ok(ret)
-    });
-    info!("Elapsed {}", elapsed);
-    ret
-}
 
 pub type Rating = u8;
 /// `Transaction` is a customer's behavior.config
@@ -41,7 +13,7 @@ pub type Rating = u8;
 /// (between 1 and 5 inclusive), and `date`
 ///
 /// If 'rating' is 0 then this `Transaction` is in test set.
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct Transaction {
     pub movie_id: u64,
     pub customer_id: u64,
@@ -49,31 +21,11 @@ pub struct Transaction {
     pub date: String,
 }
 
-impl FromStringRecord for Transaction {
-    fn from_string_record(record: StringRecord) -> Result<Self, Box<dyn Error>> {
-        Ok(Self {
-            movie_id: record.get(0).unwrap().parse()?,
-            customer_id: record.get(1).unwrap().parse()?,
-            rating: record.get(2).unwrap().parse().unwrap_or(0),
-            date: record.get(3).unwrap().to_string(),
-        })
-    }
-}
-
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct Movie {
-    movie_id: u64,
-    year_produced: u16,
-    title: String,
-}
-impl FromStringRecord for Movie {
-    fn from_string_record(record: StringRecord) -> Result<Self, Box<dyn Error>> {
-        Ok(Self {
-            movie_id: record.get(0).unwrap().parse()?,
-            year_produced: record.get(1).unwrap().parse().unwrap_or(0),
-            title: record.get(2).unwrap().to_string(),
-        })
-    }
+    pub movie_id: u64,
+    pub year_produced: u16,
+    pub title: String,
 }
 
 #[derive(Debug, Clone)]
@@ -98,10 +50,10 @@ impl Data {
         P: Into<PathBuf> + Clone + Debug,
     {
         info!("Loading data from: {:?}", path);
-        let mut transactions: Vec<Transaction> =
-            load_csv(path.clone().into().join(config::TRAINING_DATA))?;
-        let movies = load_csv(path.clone().into().join("movie_titles.csv"))?;
-        let mut test_data: Vec<Transaction> = load_csv(path.clone().into().join("test.csv"))?;
+        let mut transactions =
+            Transaction::from_csv(path.clone().into().join(config::TRAINING_DATA))?;
+        let movies = Movie::from_csv(path.clone().into().join("movie_titles.csv"))?;
+        let mut test_data = Transaction::from_csv(path.clone().into().join("test.csv"))?;
         let mut virtual_id_map = HashMap::new();
         let mut virtual_id = 0;
         let mut trans_freq = Vec::new();
