@@ -1,4 +1,9 @@
-use std::{collections::{HashMap, VecDeque}, error::Error, fmt::Debug, path::PathBuf};
+use std::{
+    collections::{HashMap, VecDeque},
+    error::Error,
+    fmt::Debug,
+    path::PathBuf,
+};
 
 use crate::config;
 use crate::io::FromCsv;
@@ -85,7 +90,7 @@ impl Data {
             t.customer_id = idx;
             tests_freq[idx as usize] += 1;
         });
-        
+
         // 20% of training data is used for cross validation.
         let num_cross_valid = transactions.len() / 5;
         let num_train = transactions.len() - num_cross_valid;

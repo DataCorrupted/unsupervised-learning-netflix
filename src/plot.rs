@@ -55,21 +55,21 @@ pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<d
         .axis_desc_style(("sans-serif", 50).into_font())
         .draw()?;
 
-    let mut plot_points = |data: &Vec<Transaction>, color: &RGBColor| -> Result<(), Box<dyn Error>>{
-        // Similarly, we can draw point series
-        chart.draw_series(PointSeries::of_element(
-            data
-                .iter()
-                .map(|t| (t.movie_id as f32, t.customer_id as f32)),
-            1,
-            color,
-            &|c, _s, st| {
-                return EmptyElement::at(c)    // We want to construct a composed element on-the-fly
+    let mut plot_points =
+        |data: &Vec<Transaction>, color: &RGBColor| -> Result<(), Box<dyn Error>> {
+            // Similarly, we can draw point series
+            chart.draw_series(PointSeries::of_element(
+                data.iter()
+                    .map(|t| (t.movie_id as f32, t.customer_id as f32)),
+                1,
+                color,
+                &|c, _s, st| {
+                    return EmptyElement::at(c)    // We want to construct a composed element on-the-fly
                 + Pixel::new((0,0),st.filled()); // At this point, the new pixel coordinate is established
-            },
-        ))?;
-        Ok(())
-    };
+                },
+            ))?;
+            Ok(())
+        };
 
     plot_points(&data.train, &BLUE)?;
     plot_points(&data.cross_valid, &YELLOW)?;
