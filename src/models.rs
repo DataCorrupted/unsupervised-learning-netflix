@@ -3,19 +3,20 @@ pub mod matrix_completion;
 /// Spectral clustering.
 pub mod spectral_clustering;
 
+use rusty_machine::prelude::*;
 use std::fmt::Debug;
 
-use crate::data::{Data, Rating, Transaction};
+use crate::data::*;
 
 /// `DefaultModel` generate uninitialized `Model`.
 pub trait DefaultModel: Model {
-    fn default(&self) -> Box<dyn Model>;
+    fn default_model(&self) -> Box<dyn Model>;
 }
 impl<T> DefaultModel for T
 where
     T: Model + Default + 'static,
 {
-    fn default(&self) -> Box<dyn Model> {
+    fn default_model(&self) -> Box<dyn Model> {
         Box::new(T::default())
     }
 }
@@ -35,7 +36,7 @@ impl ModelHolder {
     /// Return a `Model::default()`
     #[allow(dead_code)]
     pub fn get_model(&self) -> Box<dyn Model> {
-        self.inner.default()
+        self.inner.default_model()
     }
     pub fn get_name(&self) -> &'static str {
         self.inner.get_name()
@@ -50,7 +51,7 @@ pub trait Model {
     }
     /// Initialize a `Model` with given `Data`. `Model` do not need a
     /// `new()` method but should be `Default` for factory pattern.
-    fn init(&mut self, data: &Data) -> &mut dyn Model;
+    fn init(&mut self, data: &Data, metadata: &MetaData) -> &mut dyn Model;
     /// Train the `Model`.
     fn train(&mut self) -> &mut dyn Model;
     /// Given one `Transaction`, predict the `Rating`.

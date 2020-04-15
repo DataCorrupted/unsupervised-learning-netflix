@@ -20,6 +20,9 @@ mod plot;
 /// Handles input/output of the data.
 mod io;
 
+/// Any common algorithms go here.
+mod algorithm;
+
 use log::{error, info, warn};
 use std::{env, path::Path, process};
 
@@ -88,7 +91,7 @@ fn main() {
     for model_holder in inventory::iter::<ModelHolder> {
         let mut model = model_holder.get_model();
         model
-            .init(&data)
+            .init(&data, &metadata)
             .train()
             .predict_all(&data.test_data)
             .dump_to_file(format!("{}.txt", model_holder.get_name()));

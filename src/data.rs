@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, fmt::Debug, path::PathBuf};
+use std::{collections::{HashMap, VecDeque}, error::Error, fmt::Debug, path::PathBuf};
 
 use crate::config;
 use crate::io::FromCsv;
@@ -13,10 +13,10 @@ pub type Rating = u8;
 /// (between 1 and 5 inclusive), and `date`
 ///
 /// If 'rating' is 0 then this `Transaction` is in test set.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Transaction {
-    pub movie_id: u64,
-    pub customer_id: u64,
+    pub movie_id: usize,
+    pub customer_id: usize,
     pub rating: Rating,
     pub date: String,
 }
@@ -30,8 +30,10 @@ pub struct Movie {
 
 #[derive(Debug, Clone)]
 pub struct MetaData {
-    pub num_customers: u32,
-    pub num_movies: u32,
+    pub num_customers: usize,
+    pub num_movies: usize,
+    pub num_train: usize,
+    pub num_cross_valid: usize,
     pub trans_freq: Vec<u32>,
     pub tests_freq: Vec<u32>,
 }
@@ -39,7 +41,8 @@ pub struct MetaData {
 /// `Data` holds all `Transaction`s, `Movie`s and test set,
 /// which is also in the form a `Transaction`.
 pub struct Data {
-    pub transactions: Vec<Transaction>,
+    pub train: Vec<Transaction>,
+    pub cross_valid: Vec<Transaction>,
     pub movies: Vec<Movie>,
     pub test_data: Vec<Transaction>,
 }
@@ -82,15 +85,25 @@ impl Data {
             t.customer_id = idx;
             tests_freq[idx as usize] += 1;
         });
+        
+        // 20% of training data is used for cross validation.
+        let num_cross_valid = transactions.len() / 5;
+        let num_train = transactions.len() - num_cross_valid;
+
+        let mut transactions: VecDeque<Transaction> = transactions.into();
+
         Ok((
             MetaData {
-                num_customers: virtual_id as u32,
-                num_movies: movies.len() as u32,
+                num_customers: virtual_id as usize,
+                num_movies: movies.len(),
+                num_train: num_train,
+                num_cross_valid: num_cross_valid,
                 trans_freq: trans_freq,
                 tests_freq: tests_freq,
             },
             Data {
-                transactions: transactions,
+                train: transactions.drain(0..num_train).collect(),
+                cross_valid: transactions.drain(0..num_cross_valid).collect(),
                 movies: movies,
                 test_data: test_data,
             },

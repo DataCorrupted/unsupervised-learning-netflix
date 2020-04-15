@@ -3,15 +3,18 @@ use std::error::Error;
 use log::info;
 use plotters::prelude::*;
 
-use crate::data::{Data, MetaData};
+use crate::data::{Data, MetaData, Transaction};
 
 pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<dyn Error>> {
     let MetaData {
         num_customers: n,
         num_movies: m,
+        num_train: _,
+        num_cross_valid: _,
         trans_freq: _,
         tests_freq: _,
     } = metadata;
+    let (n, m) = (*n as u32, *m as u32);
 
     let (x_label_size, y_label_size) = (100, 100);
     let margin = 100;
@@ -34,7 +37,7 @@ pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<d
         .x_label_area_size(x_label_size)
         .y_label_area_size(y_label_size)
         // Finally attach a coordinate on the drawing area and make a chart context
-        .build_ranged(0f32..*m as f32, 0f32..*n as f32)?;
+        .build_ranged(0f32..m as f32, 0f32..n as f32)?;
 
     // Then we can draw a mesh
     chart
@@ -52,29 +55,25 @@ pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<d
         .axis_desc_style(("sans-serif", 50).into_font())
         .draw()?;
 
-    // Similarly, we can draw point series
-    chart.draw_series(PointSeries::of_element(
-        data.transactions
-            .iter()
-            .map(|t| (t.movie_id as f32, t.customer_id as f32)),
-        1,
-        &BLUE,
-        &|c, _s, st| {
-            return EmptyElement::at(c)    // We want to construct a composed element on-the-fly
-            + Pixel::new((0,0),st.filled()); // At this point, the new pixel coordinate is established
-        },
-    ))?;
-    chart.draw_series(PointSeries::of_element(
-        data.test_data
-            .iter()
-            .map(|t| (t.movie_id as f32, t.customer_id as f32)),
-        1,
-        &RED,
-        &|c, _s, st| {
-            return EmptyElement::at(c)    // We want to construct a composed element on-the-fly
-            + Pixel::new((0,0),st.filled()); // At this point, the new pixel coordinate is established
-        },
-    ))?;
+    let mut plot_points = |data: &Vec<Transaction>, color: &RGBColor| -> Result<(), Box<dyn Error>>{
+        // Similarly, we can draw point series
+        chart.draw_series(PointSeries::of_element(
+            data
+                .iter()
+                .map(|t| (t.movie_id as f32, t.customer_id as f32)),
+            1,
+            color,
+            &|c, _s, st| {
+                return EmptyElement::at(c)    // We want to construct a composed element on-the-fly
+                + Pixel::new((0,0),st.filled()); // At this point, the new pixel coordinate is established
+            },
+        ))?;
+        Ok(())
+    };
+
+    plot_points(&data.train, &BLUE)?;
+    plot_points(&data.cross_valid, &YELLOW)?;
+    plot_points(&data.test_data, &RED)?;
     Ok(())
 }
 
@@ -119,9 +118,12 @@ pub fn plot_data_freq(metadata: &MetaData) -> Result<(), Box<dyn Error>> {
     let MetaData {
         num_customers: n,
         num_movies: _,
+        num_train: _,
+        num_cross_valid: _,
         trans_freq,
         tests_freq,
     } = metadata.clone();
+    let n = n as u32;
     let (max_trans, max_tests) = trans_freq.iter().zip(tests_freq.iter()).fold(
         (0, 0),
         |(max_trans, max_tests), (&trans, &tests)| {
