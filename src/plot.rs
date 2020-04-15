@@ -5,7 +5,7 @@ use plotters::prelude::*;
 
 use crate::data::{Data, MetaData, Transaction};
 
-pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<dyn Error>> {
+pub fn plot_initial_matrix(data: &Data) -> Result<(), Box<dyn Error>> {
     let MetaData {
         num_customers: n,
         num_movies: m,
@@ -13,14 +13,13 @@ pub fn plot_initial_matrix(data: &Data, metadata: &MetaData) -> Result<(), Box<d
         num_cross_valid: _,
         trans_freq: _,
         tests_freq: _,
-    } = metadata;
-    let (n, m) = (*n as u32, *m as u32);
+    } = data.metadata;
 
     let (x_label_size, y_label_size) = (100, 100);
     let margin = 100;
     let plot_size = (
-        y_label_size + margin * 2 + m / 5,
-        x_label_size + margin * 2 + n / 5,
+        y_label_size + margin * 2 + m as u32 / 5,
+        x_label_size + margin * 2 + n as u32 / 5,
     );
 
     let root = BitMapBackend::new("initial_matrix.png", plot_size).into_drawing_area();

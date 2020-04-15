@@ -1,3 +1,5 @@
+use log::{info, warn};
+use rusty_machine::prelude::*;
 use std::{
     collections::{HashMap, VecDeque},
     error::Error,
@@ -7,8 +9,6 @@ use std::{
 
 use crate::config;
 use crate::io::FromCsv;
-
-use log::{info, warn};
 
 pub type Rating = u8;
 /// `Transaction` is a customer's behavior.config
@@ -46,6 +46,7 @@ pub struct MetaData {
 /// `Data` holds all `Transaction`s, `Movie`s and test set,
 /// which is also in the form a `Transaction`.
 pub struct Data {
+    pub metadata: MetaData,
     pub train: Vec<Transaction>,
     pub cross_valid: Vec<Transaction>,
     pub movies: Vec<Movie>,
@@ -53,7 +54,7 @@ pub struct Data {
 }
 
 impl Data {
-    pub fn new<P>(path: P) -> Result<(MetaData, Self), Box<dyn Error>>
+    pub fn new<P>(path: P) -> Result<Self, Box<dyn Error>>
     where
         P: Into<PathBuf> + Clone + Debug,
     {
@@ -97,8 +98,8 @@ impl Data {
 
         let mut transactions: VecDeque<Transaction> = transactions.into();
 
-        Ok((
-            MetaData {
+        Ok(Data {
+            metadata: MetaData {
                 num_customers: virtual_id as usize,
                 num_movies: movies.len(),
                 num_train: num_train,
@@ -106,12 +107,24 @@ impl Data {
                 trans_freq: trans_freq,
                 tests_freq: tests_freq,
             },
-            Data {
-                train: transactions.drain(0..num_train).collect(),
-                cross_valid: transactions.drain(0..num_cross_valid).collect(),
-                movies: movies,
-                test_data: test_data,
-            },
-        ))
+            train: transactions.drain(0..num_train).collect(),
+            cross_valid: transactions.drain(0..num_cross_valid).collect(),
+            movies: movies,
+            test_data: test_data,
+        })
+    }
+}
+
+pub trait TrainingDataToMatrix {
+    fn training_data_to_matrix(&self) -> Matrix<f64>;
+}
+
+impl TrainingDataToMatrix for Data {
+    fn training_data_to_matrix(&self) -> Matrix<f64> {
+        let mut ret = Matrix::<f64>::zeros(self.metadata.num_customers, self.metadata.num_movies);
+        self.train.iter().for_each(|t| {
+            ret[[t.customer_id, t.movie_id]] = t.rating as f64;
+        });
+        ret
     }
 }

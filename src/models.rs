@@ -51,7 +51,7 @@ pub trait Model {
     }
     /// Initialize a `Model` with given `Data`. `Model` do not need a
     /// `new()` method but should be `Default` for factory pattern.
-    fn init(&mut self, data: &Data, metadata: &MetaData) -> &mut dyn Model;
+    fn init(&mut self, data: &Data) -> &mut dyn Model;
     /// Train the `Model`.
     fn train(&mut self) -> &mut dyn Model;
     /// Given one `Transaction`, predict the `Rating`.

@@ -1,11 +1,17 @@
 use super::*;
 
 #[derive(Debug)]
-struct SpectralClustering;
+struct SpectralClustering {
+    similarity: Matrix<f64>,
+    customer_movie: Matrix<f64>,
+}
 
 impl Default for SpectralClustering {
     fn default() -> Self {
-        SpectralClustering
+        SpectralClustering {
+            similarity: Matrix::zeros(1, 1),
+            customer_movie: Matrix::zeros(1, 1),
+        }
     }
 }
 
@@ -15,21 +21,9 @@ impl Model for SpectralClustering {
     fn get_name(&self) -> &'static str {
         "SpectralClustering"
     }
-    fn init(&mut self, data: &Data, metadata: &MetaData) -> &mut dyn Model {
-        let MetaData {
-            num_customers: n,
-            num_movies: m,
-            num_train: _,
-            num_cross_valid: _,
-            trans_freq: _,
-            tests_freq: _,
-        } = metadata;
-        let (m, n) = (*m as usize, *n as usize);
-        let mut customer_movie = Matrix::<f64>::zeros(n, m);
-        data.train.iter().for_each(|t| {
-            customer_movie[[t.customer_id, t.movie_id]] = t.rating as f64;
-        });
-        let _similarility = customer_movie.transpose().get_similarity_matrix();
+    fn init(&mut self, data: &Data) -> &mut dyn Model {
+        self.customer_movie = data.training_data_to_matrix();
+        self.similarity = self.customer_movie.transpose().get_similarity_matrix();
         self
     }
     fn train(&mut self) -> &mut dyn Model {

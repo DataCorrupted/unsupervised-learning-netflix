@@ -59,13 +59,14 @@ fn main() {
         }
     };
 
-    let (metadata, data) = match Data::new(data_path) {
+    let data = match Data::new(data_path) {
         Ok(d) => d,
         Err(err) => {
             error!("error running example: {}", err);
             process::exit(1);
         }
     };
+    let metadata = &data.metadata;
     let (num_trans, num_tests) = metadata
         .trans_freq
         .iter()
@@ -83,15 +84,15 @@ fn main() {
         num_trans, num_tests
     );
 
-    plot::plot_data_freq(&metadata).expect("Cannot plot freq histogram.");
+    plot::plot_data_freq(metadata).expect("Cannot plot freq histogram.");
 
-    plot::plot_initial_matrix(&data, &metadata).expect("Cannot plot initial matrix.");
+    plot::plot_initial_matrix(&data).expect("Cannot plot initial matrix.");
     info!("Initial matrix plotted.");
 
     for model_holder in inventory::iter::<ModelHolder> {
         let mut model = model_holder.get_model();
         model
-            .init(&data, &metadata)
+            .init(&data)
             .train()
             .predict_all(&data.test_data)
             .dump_to_file(format!("{}.txt", model_holder.get_name()));
