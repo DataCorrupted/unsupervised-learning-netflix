@@ -1,8 +1,7 @@
 use csv::StringRecord;
 use elapsed::measure_time;
 use log::info;
-use std::{error::Error, fmt::Display, fs::File, io::Write, path::PathBuf};
-
+use std::{error::Error, fmt::Display, fs::File, io::Write, path::PathBuf, ops::Sub};
 use crate::data::*;
 
 /// Converts a `StringRecord` to our type.
@@ -15,7 +14,8 @@ pub trait FromStringRecord {
 impl FromStringRecord for Movie {
     fn from_string_record(record: StringRecord) -> Result<Self, Box<dyn Error>> {
         Ok(Self {
-            movie_id: record.get(0).unwrap().parse()?,
+            // movie_id starts counting from 1, we don't like that.
+            movie_id: record.get(0).unwrap().parse::<usize>()?.sub(1),
             year_produced: record.get(1).unwrap().parse().unwrap_or(0),
             title: record.get(2).unwrap().to_string(),
         })
@@ -25,7 +25,8 @@ impl FromStringRecord for Movie {
 impl FromStringRecord for Transaction {
     fn from_string_record(record: StringRecord) -> Result<Self, Box<dyn Error>> {
         Ok(Self {
-            movie_id: record.get(0).unwrap().parse()?,
+            // movie_id starts counting from 1, we don't like that.
+            movie_id: record.get(0).unwrap().parse::<usize>()?.sub(1),
             customer_id: record.get(1).unwrap().parse()?,
             rating: record.get(2).unwrap().parse().unwrap_or(0),
             date: record.get(3).unwrap().to_string(),

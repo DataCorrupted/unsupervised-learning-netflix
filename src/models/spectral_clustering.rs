@@ -22,11 +22,27 @@ impl Model for SpectralClustering {
         "SpectralClustering"
     }
     fn init(&mut self, data: &Data) -> &mut dyn Model {
-        self.customer_movie = data.training_data_to_matrix();
-        self.similarity = self.customer_movie.transpose().get_similarity_matrix();
+        let (elapsed, _) = measure_time(|| {
+            self.customer_movie = data.training_data_to_matrix();
+            self.similarity = self.customer_movie.transpose().get_similarity_matrix();
+        });
+        info!("{}.init(&Data) finished... elapsed: {}", self.get_name(), elapsed);
         self
     }
     fn train(&mut self) -> &mut dyn Model {
+        let (elapsed, result) = measure_time(|| {
+            self.similarity.eigendecomp()
+        });
+        info!("{}.train() finished... elapsed: {}", self.get_name(), elapsed);
+        let (eig_val, _) = result.unwrap();
+        let cnt = eig_val.iter().fold(0, |cnt, v| {
+            if (v - 0f64).abs() < 1e-10 {
+                cnt + 1
+            } else {
+                cnt
+            }
+        });
+        info!("# of 0 eigen values: {}", cnt);
         self
     }
     fn predict(&self, _trans: &Transaction) -> Rating {
@@ -130,6 +146,6 @@ mod test {
         assert!(similarity[[0, 1]] == 0f64);
         assert!(similarity[[3, 0]] == 0f64);
         assert!(similarity[[4, 0]] - 0.5f64 < 1e-10);
-        assert!(similarity[[1, 4]] - -f64::sqrt(3f64) / 2f64 < 1e-10);
+        assert!((similarity[[1, 4]] - -f64::sqrt(3f64) / 2f64).abs() < 1e-10);
     }
 }

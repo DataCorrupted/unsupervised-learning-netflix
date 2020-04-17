@@ -5,6 +5,8 @@ pub mod spectral_clustering;
 
 use rusty_machine::prelude::*;
 use std::fmt::Debug;
+use elapsed::measure_time;
+use log::*;
 
 use crate::data::*;
 

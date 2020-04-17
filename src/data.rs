@@ -28,7 +28,7 @@ pub struct Transaction {
 
 #[derive(Debug)]
 pub struct Movie {
-    pub movie_id: u64,
+    pub movie_id: usize,
     pub year_produced: u16,
     pub title: String,
 }

@@ -5,6 +5,7 @@ use plotters::prelude::*;
 
 use crate::data::{Data, MetaData, Transaction};
 
+#[allow(dead_code)]
 pub fn plot_initial_matrix(data: &Data) -> Result<(), Box<dyn Error>> {
     let MetaData {
         num_customers: n,
@@ -113,6 +114,7 @@ fn plot_freq_histogram(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn plot_data_freq(metadata: &MetaData) -> Result<(), Box<dyn Error>> {
     let MetaData {
         num_customers: n,

@@ -2,6 +2,7 @@
 data/*.csv
 Cargo.lock
 *.pdf
-doc/
+doc/*
+!doc/katex.html
 *.png
 *.txt
