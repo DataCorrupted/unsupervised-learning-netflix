@@ -3,10 +3,11 @@ pub mod matrix_completion;
 /// Spectral clustering.
 pub mod spectral_clustering;
 
-use rusty_machine::prelude::*;
-use std::fmt::Debug;
 use elapsed::measure_time;
 use log::*;
+use std::fmt::Debug;
+
+use nalgebra::core::DMatrix;
 
 use crate::data::*;
 

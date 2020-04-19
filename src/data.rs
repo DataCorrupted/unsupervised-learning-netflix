@@ -1,5 +1,5 @@
 use log::{info, warn};
-use rusty_machine::prelude::*;
+use nalgebra::core::DMatrix;
 use std::{
     collections::{HashMap, VecDeque},
     error::Error,
@@ -116,14 +116,14 @@ impl Data {
 }
 
 pub trait TrainingDataToMatrix {
-    fn training_data_to_matrix(&self) -> Matrix<f64>;
+    fn training_data_to_matrix(&self) -> DMatrix<f64>;
 }
 
 impl TrainingDataToMatrix for Data {
-    fn training_data_to_matrix(&self) -> Matrix<f64> {
-        let mut ret = Matrix::<f64>::zeros(self.metadata.num_customers, self.metadata.num_movies);
+    fn training_data_to_matrix(&self) -> DMatrix<f64> {
+        let mut ret = DMatrix::zeros(self.metadata.num_customers, self.metadata.num_movies);
         self.train.iter().for_each(|t| {
-            ret[[t.customer_id, t.movie_id]] = t.rating as f64;
+            ret[(t.customer_id, t.movie_id)] = t.rating as f64;
         });
         ret
     }

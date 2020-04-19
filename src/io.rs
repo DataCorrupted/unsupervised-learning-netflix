@@ -1,8 +1,8 @@
+use crate::data::*;
 use csv::StringRecord;
 use elapsed::measure_time;
 use log::info;
-use std::{error::Error, fmt::Display, fs::File, io::Write, path::PathBuf, ops::Sub};
-use crate::data::*;
+use std::{error::Error, fmt::Display, fs::File, io::Write, ops::Sub, path::PathBuf};
 
 /// Converts a `StringRecord` to our type.
 pub trait FromStringRecord {

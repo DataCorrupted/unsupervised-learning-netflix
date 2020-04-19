@@ -1,18 +1,20 @@
 use super::*;
 
+use nalgebra::linalg::SymmetricEigen;
+
 #[derive(Debug)]
 struct SpectralClustering {
-    movie_similarity: Matrix<f64>,
-    customer_similarity: Matrix<f64>,
-    customer_movie: Matrix<f64>,
+    movie_similarity: DMatrix<f64>,
+    customer_similarity: DMatrix<f64>,
+    customer_movie: DMatrix<f64>,
 }
 
 impl Default for SpectralClustering {
     fn default() -> Self {
         SpectralClustering {
-            movie_similarity: Matrix::zeros(1, 1),
-            customer_similarity: Matrix::zeros(1, 1),
-            customer_movie: Matrix::zeros(1, 1),
+            movie_similarity: DMatrix::zeros(1, 1),
+            customer_similarity: DMatrix::zeros(1, 1),
+            customer_movie: DMatrix::zeros(1, 1),
         }
     }
 }
@@ -28,43 +30,66 @@ impl Model for SpectralClustering {
         let (elapsed, _) = measure_time(|| {
             info!("Convert data to matrix");
             let (elapsed, _) = measure_time(|| {
-                self.customer_movie = data.training_data_to_matrix();
+                self.customer_movie = data.training_data_to_matrix().columns(0, 1000).into();
+
+                //self.customer_movie = data.training_data_to_matrix()
             });
             info!("Convert data to matrix finished... elapsed: {}", elapsed);
-            
+            info!("Matrix shape: {:?}", self.customer_movie.shape());
+
             info!("Generate movie similarity matrix");
             let (elapsed, _) = measure_time(|| {
-                self.movie_similarity = self.customer_movie.get_similarity_matrix();
+                self.movie_similarity = self.customer_movie.get_similarity_matrix()
             });
-            info!("Generate movie similarity matrix finished... elapsed: {}", elapsed);
+            info!(
+                "Generate movie similarity matrix finished... elapsed: {}",
+                elapsed
+            );
 
+            /*
             info!("Generate customer similarity matrix");
             let (elapsed, _) = measure_time(|| {
                 self.customer_similarity = self.customer_movie.transpose().get_similarity_matrix();
             });
-            info!("Generate customer similarity matrix finished... elapsed: {}", elapsed);
+            info!(
+                "Generate customer similarity matrix finished... elapsed: {}",
+                elapsed
+            );
+            */
         });
-        info!("{}.init(&Data) finished... elapsed: {}", self.get_name(), elapsed);
+        info!(
+            "{}.init(&Data) finished... elapsed: {}",
+            self.get_name(),
+            elapsed
+        );
         self
     }
     fn train(&mut self) -> &mut dyn Model {
         info!("{}.train()", self.get_name());
         let (elapsed, (movie_eigen, customer_eigen)) = measure_time(|| {
             info!("Eigen decompose movie similarity matrix");
-            let (elapsed, movie_eigen) = measure_time(|| {
-                self.movie_similarity.eigendecomp()
-            });
-            info!("Eigen decompose movie similarity matrix finished... elapsed: {}", elapsed);
+            let (elapsed, movie_eigen) =
+                measure_time(|| SymmetricEigen::new(self.movie_similarity.clone()));
+            info!(
+                "Eigen decompose movie similarity matrix finished... elapsed: {}",
+                elapsed
+            );
 
             info!("Eigen decompose customer similarity matrix");
-            let (elapsed, customer_eigen) = measure_time(|| {
-                self.customer_similarity.eigendecomp()
-            });
-            info!("Eigen decompose customer similarity matrix finished... elapsed: {}", elapsed);
+            let (elapsed, customer_eigen) =
+                measure_time(|| SymmetricEigen::new(self.movie_similarity.clone()));
+            info!(
+                "Eigen decompose customer similarity matrix finished... elapsed: {}",
+                elapsed
+            );
             (movie_eigen, customer_eigen)
         });
-        info!("{}.train() finished... elapsed: {}", self.get_name(), elapsed);
-        let cnt = movie_eigen.unwrap().0.iter().fold(0, |cnt, v| {
+        info!(
+            "{}.train() finished... elapsed: {}",
+            self.get_name(),
+            elapsed
+        );
+        let cnt = movie_eigen.eigenvalues.iter().fold(0, |cnt, v| {
             if (v - 0f64).abs() < 1e-10 {
                 cnt + 1
             } else {
@@ -72,14 +97,15 @@ impl Model for SpectralClustering {
             }
         });
         info!("# of 0 eigen values in movie: {}", cnt);
-        let cnt = customer_eigen.unwrap().0.iter().fold(0, |cnt, v| {
+
+        let cnt = customer_eigen.eigenvalues.iter().fold(0, |cnt, v| {
             if (v - 0f64).abs() < 1e-10 {
                 cnt + 1
             } else {
                 cnt
             }
         });
-        info!("# of 0 eigen values in movie: {}", cnt);
+        info!("# of 0 eigen values in customer: {}", cnt);
 
         self
     }
@@ -89,80 +115,87 @@ impl Model for SpectralClustering {
 }
 
 /// Get pearson consine similarity matrix of size m x m from matrix n x m;
-/// 
+///
 /// Pearson consine similarity is defined by
 /// ```math
-/// cos(x, y) = \frac{ 
-///     (x - \bar{x})^T \cdot (y - \bar{y}) 
+/// cos(x, y) = \frac{
+///     (x - \bar{x})^T \cdot (y - \bar{y})
 /// }{
 ///     ||x - \bar{x}|| \cdot ||y - \bar{y}||
 /// }
 /// ```
-trait PearsonCosineSimilarity: BaseMatrix<f64> {
+trait PearsonCosineSimilarity {
     /// Get a vector over all rows(items)
-    fn get_avg_vec_and_non_zero_idx(&self) -> (Vec<f64>, Vec<Vec<usize>>);
+    fn get_avg_and_non_zero_idx(&self) -> (Vec<f64>, Vec<Vec<usize>>);
 
     /// Get similarity matrix of size m x m from matrix of size m x n
-    fn get_similarity_matrix(&self) -> Matrix<f64>;
+    fn get_similarity_matrix(&self) -> DMatrix<f64>;
 }
 
-impl PearsonCosineSimilarity for Matrix<f64> {
-    fn get_avg_vec_and_non_zero_idx(&self) -> (Vec<f64>, Vec<Vec<usize>>){
-        let mut non_zero_idx = vec![];
-        let mut avg = vec![];
-        let matrix = self.transpose();
-        for i in 0..matrix.rows() {
-            non_zero_idx.push(vec![]);
-            let last = &mut non_zero_idx.last_mut().unwrap();
-            let row = matrix.get_row(i).unwrap();
+impl PearsonCosineSimilarity for DMatrix<f64> {
+    fn get_avg_and_non_zero_idx(&self) -> (Vec<f64>, Vec<Vec<usize>>) {
+        let (n, m) = self.shape();
+        let mut non_zero_idx = vec![vec![]; m];
+        let mut avg = vec![0f64; m];
+
+        for j in 0..m {
+            let curr = &mut non_zero_idx[j];
+            let col_j = self.column(j);
             let mut sum = 0f64;
-            for j in 0..matrix.cols() {
-                if row[j] != 0f64 {
-                    last.push(j);
-                    sum += row[j];
+            for i in 0..n {
+                if col_j[i] != 0f64 {
+                    curr.push(i);
+                    sum += col_j[i];
                 }
             }
-            avg.push(
-                if last.len() != 0 {
-                    sum / last.len() as f64
-                } else {
-                    0f64
-                }
-            );
+            avg[j] = if curr.len() != 0 {
+                sum / curr.len() as f64
+            } else {
+                0f64
+            };
         }
         (avg, non_zero_idx)
     }
-    fn get_similarity_matrix(&self) -> Matrix<f64> {
-        let m = self.cols();
-        let (avg, non_zero_idx) = self.get_avg_vec_and_non_zero_idx();
+    fn get_similarity_matrix(&self) -> DMatrix<f64> {
+        let (_, m) = self.shape();
+        let (avg, non_zero_idx) = self.get_avg_and_non_zero_idx();
+
+        let mut norm = vec![0f64; m];
         let mut matrix = self.clone();
         for j in 0..non_zero_idx.len() {
-            non_zero_idx[j].iter().for_each(|&i|{
-                matrix[[i, j]] -= avg[j];
+            non_zero_idx[j].iter().for_each(|&i| {
+                matrix[(i, j)] -= avg[j];
+                norm[j] += matrix[(i, j)].powi(2);
             });
         }
-        // similarity[i][j] is cross product of item i and j
-        let mut similarility = matrix.transpose() * matrix;
-        // similarity[i][i] is |item_i|^2, let's make it |item_i|.
-        for i in 0..m {
-            similarility[[i, i]] = similarility[[i, i]].sqrt();
-        }
+        norm.iter_mut().for_each(|n| *n = n.sqrt());
+
+        let mut similarility = Self::zeros(m, m);
         // Divide similarity[i][j] by |item_i| and |item_j|, which is located
         // in the diag of similarity.
-        for i in 0..m {
-            if avg[i] == 0f64 { continue; }
-            for j in i + 1..m {
-                if avg[j] == 0f64 {
+        for j in 0..m {
+            for i in j + 1..m {
+                if norm[i] == 0f64 || norm[j] == 0f64 {
                     continue;
                 }
-                let div = similarility[[i, i]] * similarility[[j, j]];
-                similarility[[i, j]] /= div;
-                similarility[[j, i]] = similarility[[i, j]];
+                let nx = &non_zero_idx[i];
+                let ny = &non_zero_idx[j];
+                let mut p = 0;
+                let mut q = 0;
+                while p < nx.len() && q < ny.len() {
+                    if nx[p] == ny[q] {
+                        similarility[(i, j)] += matrix[(nx[p], i)] * matrix[(ny[q], j)];
+                        p += 1;
+                        q += 1;
+                    } else if nx[p] < ny[q] {
+                        p += 1;
+                    } else {
+                        q += 1;
+                    }
+                }
+                similarility[(i, j)] = similarility[(i, j)] / (norm[i] * norm[j]);
+                similarility[(j, i)] = similarility[(i, j)];
             }
-        }
-        // Remove self loop im similarity[i][i].
-        for i in 0..m {
-            similarility[[i, i]] = 0f64;
         }
         similarility
     }
@@ -173,34 +206,35 @@ mod test {
     use super::*;
     #[test]
     fn test_pearson_cosine_similarity() {
-        let matrix = Matrix::<f64>::new(
+        let matrix = DMatrix::<f64>::from_row_slice(
             3,
             6,
-            vec![
-                1f64, 2f64, 0f64, 0f64, 1f64, 0f64,
-                0f64, 1f64, 2f64, 0f64, 3f64, 0f64,
-                2f64, 2f64, 4f64, 0f64, 2f64, 0f64,
+            &[
+                1f64, 2f64, 0f64, 0f64, 1f64, 0f64, 0f64, 1f64, 2f64, 0f64, 3f64, 0f64, 2f64, 2f64,
+                4f64, 0f64, 2f64, 0f64,
             ],
         );
-        assert!(matrix.cols() == 6);
-        assert!(matrix.rows() == 3);
-        let (avg, non_zero_idx) = matrix.get_avg_vec_and_non_zero_idx();
+        assert!(matrix.shape() == (3, 6));
+        let (avg, non_zero_idx) = matrix.get_avg_and_non_zero_idx();
         assert!(avg == vec![1.5f64, 5f64 / 3f64, 3f64, 0f64, 2f64, 0f64]);
-        assert!(non_zero_idx == vec![
-            vec![0, 2],
-            vec![0, 1, 2],
-            vec![1, 2],
-            vec![],
-            vec![0, 1, 2],
-            vec![],
-        ]);
+        assert!(
+            non_zero_idx
+                == vec![
+                    vec![0, 2],
+                    vec![0, 1, 2],
+                    vec![1, 2],
+                    vec![],
+                    vec![0, 1, 2],
+                    vec![],
+                ]
+        );
         let similarity = matrix.get_similarity_matrix();
         assert!(similarity == similarity.transpose());
-        assert!(similarity[[0, 0]] == 0f64);
-        assert!(similarity[[5, 3]] == 0f64);
-        assert!(similarity[[0, 1]] == 0f64);
-        assert!(similarity[[3, 0]] == 0f64);
-        assert!(similarity[[4, 0]] - 0.5f64 < 1e-10);
-        assert!((similarity[[1, 4]] - -f64::sqrt(3f64) / 2f64).abs() < 1e-10);
+        assert!(similarity[(0, 0)] == 0f64);
+        assert!(similarity[(5, 3)] == 0f64);
+        assert!(similarity[(0, 1)] == 0f64);
+        assert!(similarity[(3, 0)] == 0f64);
+        assert!(similarity[(4, 0)] - 0.5f64 < 1e-10);
+        assert!((similarity[(1, 4)] - -f64::sqrt(3f64) / 2f64).abs() < 1e-10);
     }
 }

@@ -3,20 +3,20 @@
 //! This is a homework for ECS271. I know it's kinda better and easier
 //! (mostly easier) to use Python. But I do want to try to use rust
 //! to do some learning and see how it works.
-//! 
+//!
 //! It is possible to combine doc with rust just like Java does.  
 //! What's more, you can even write math formular with the help of
-//! crate [katex-doc](https://crates.io/crates/katex-doc). For example, 
-//! I can inline formular 
+//! crate [katex-doc](https://crates.io/crates/katex-doc). For example,
+//! I can inline formular
 //! $` f(x) = \int_{-\infty}^\infty \hat f(\xi)\,e^{2 \pi i \xi x} \,d\xi `$
 //! or simply do:
-//! 
+//!
 //! ```math
 //! f(x) = \int_{-\infty}^\infty
 //! \hat f(\xi)\,e^{2 \pi i \xi x}
 //! \,d\xi
 //! ```
-//! 
+//!
 //! That's the reason I am going to put this homework's report here.
 
 /// All the configurations for the binary.

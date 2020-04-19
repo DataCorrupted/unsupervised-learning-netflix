@@ -2,13 +2,13 @@ use super::*;
 
 #[derive(Debug)]
 struct MatrixCompletion {
-    customer_movie: Matrix<f64>,
+    customer_movie: DMatrix<f64>,
 }
 
 impl Default for MatrixCompletion {
     fn default() -> Self {
         MatrixCompletion {
-            customer_movie: Matrix::zeros(1, 1),
+            customer_movie: DMatrix::zeros(1, 1),
         }
     }
 }
